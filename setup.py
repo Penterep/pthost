@@ -30,6 +30,6 @@ setuptools.setup(
         "homepage":   "https://www.penterep.com/",
         "repository": "https://github.com/penterep/pthost",
         "tracker":    "https://github.com/penterep/pthost/issues",
-        "changelog":  "https://github.com/penterep/pthost/CHANGELOG.md/blob/main/CHANGELOG.md",
+        "changelog":  "https://github.com/penterep/pthost/blob/main/CHANGELOG.md",
     }
 )
