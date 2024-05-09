@@ -24,7 +24,6 @@ import sys; sys.path.append(__file__.rsplit("/", 1)[0])
 import requests
 import validators
 
-from modules.results import print_vulnerabilities
 from modules.scanner import VulnerabilityTester
 
 from _version import __version__
