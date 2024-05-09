@@ -21,6 +21,7 @@ import argparse
 import socket
 import sys; sys.path.append(__file__.rsplit("/", 1)[0])
 
+import tldextract
 import requests
 import validators
 
@@ -66,13 +67,15 @@ class PtHost:
             if self.test['crlf'] and response.is_redirect:
                 self.scanner._test_crlf_injection(full_url, "when redirect from HTTP to HTTPS")
 
+
         if self.test["crlf"]:
             if full_url != f"{protocol}://{base_domain}":
                 self.scanner._test_crlf_injection(f"{protocol}://{base_domain}", "when redirect to subdomain")
-            self.scanner._test_crlf_injection(f"{protocol}://www.{base_domain}", "when redirect to subdomain")
+            if not validators.ipv4(base_domain):
+                self.scanner._test_crlf_injection(f"{protocol}://www.{base_domain}", "when redirect to subdomain")
 
         if protocol == "https":
-            if self.test['seo-fragmentation']:
+            if self.test['seo-fragmentation'] and not validators.ipv4(base_domain):
                 self.scanner._check_domain_seo_fragmentation(base_url)
 
         if self.test['default-vhost']:
@@ -108,7 +111,8 @@ class PtHost:
         might return ("93.184.216.34", "https://example.com", "https://www.example.com/").
         """
 
-        extract = tldparser.parse(domain)
+        #extract = tldparser.parse(domain)
+        extract = tldextract.extract(domain)
         if validators.ipv4(extract.domain): # if <extract.domain> is ipv4 address
             base_url   = f"{protocol}://{extract.domain}"
             full_url   = f"{protocol}://{extract.domain}"
