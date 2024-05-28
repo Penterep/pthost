@@ -28,7 +28,7 @@ import validators
 from modules.scanner import VulnerabilityTester
 
 from _version import __version__
-from ptlibs import ptjsonlib, ptmisclib, ptprinthelper, ptnethelper, tldparser
+from ptlibs import ptjsonlib, ptmisclib, ptprinthelper, ptnethelper
 
 
 class PtHost:
@@ -111,7 +111,6 @@ class PtHost:
         might return ("93.184.216.34", "https://example.com", "https://www.example.com/").
         """
 
-        #extract = tldparser.parse(domain)
         extract = tldextract.extract(domain)
         if validators.ipv4(extract.domain): # if <extract.domain> is ipv4 address
             base_url   = f"{protocol}://{extract.domain}"
@@ -191,9 +190,14 @@ def parse_args():
     parser.add_argument("-j",  "--json",       action="store_true")
     parser.add_argument("-v",  "--version",    action="version", version=f"%(prog)s {__version__}")
 
+    parser.add_argument("--socket-address",          type=str, default=None)
+    parser.add_argument("--socket-port",             type=str, default=None)
+    parser.add_argument("--process-ident",           type=str, default=None)
+
     if len(sys.argv) == 1 or "-h" in sys.argv or "--help" in sys.argv:
         ptprinthelper.help_print(get_help(), SCRIPTNAME, __version__)
         sys.exit(0)
+
     args = parser.parse_args()
     ptprinthelper.print_banner(SCRIPTNAME, __version__, args.json)
     return args
