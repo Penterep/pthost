@@ -1,20 +1,7 @@
 [![penterepTools](https://www.penterep.com/external/penterepToolsLogo.png)](https://www.penterep.com/)
 
 
-# pthost
-Default vhost testing tool
-
-pthost is a script for testing the default vhost on a target server and checks for various vulnerabilities via the Host HTTP header. It includes options to test for:
-
-- default-vhost: Tests the default virtual host configuration.
-- open-redirect: Checks for vulnerabilities that allow open redirects.
-- crlf: Tests for CRLF injection.
-- host-injection: Looks for Host header injection issues.
-- redir-to-https: Tests redirection from HTTP to HTTPS.
-- seo-fragmentation: Evaluates SEO fragmentation vulnerabilities.
-- subdomain-reflection-www: Tests subdomain reflection including 'www'.
-- subdomain-reflection-no-www: Checks subdomain reflection excluding 'www'.
-
+## PTHOST - Default vhost testing tool
 
 ## Installation
 ```
@@ -76,6 +63,7 @@ pthost -d www.example.com
 ```
 ptlibs
 validators
+tldextract
 ```
 
 

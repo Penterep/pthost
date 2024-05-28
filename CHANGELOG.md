@@ -1,5 +1,9 @@
 ## Version History
 
+Version 1.0.2
+-------------
+- Added `--socket-address` `--socket-port` `--process-ident` arguments for ptmanager communication.
+
 Version 1.0.1
 -------------
 - tldextract IPv4 parsing fix
