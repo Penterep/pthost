@@ -3,7 +3,7 @@ import re, requests
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper, tldparser
 
 class VulnerabilityTester:
-    def __init__(self, args, ptjsonlib, tests: dict):
+    def __init__(self, tests: dict, protocol, args, ptjsonlib):
         self.protocol  = None
         self.ptjsonlib = ptjsonlib
         self.use_json  = args.json
@@ -27,8 +27,10 @@ class VulnerabilityTester:
         """Test domain for SEO fragmentation"""
         ptprinthelper.ptprint(f"Testing Domain for SEO fragmentation", "TITLE", not self.use_json, colortext=True)
         protocol, base_domain = base_url.split("://") # split by scheme
-        response1 = requests.get(f"{protocol}://{base_domain}", allow_redirects=True)
-        response2 = requests.get(f"{protocol}://www.{base_domain}", allow_redirects=True)
+
+        response1 = requests.get(f"{protocol}://{base_domain}", allow_redirects=True, verify=False)
+        response2 = requests.get(f"{protocol}://www.{base_domain}", allow_redirects=True, verify=False)
+
         if response1.url == response2.url:
             ptprinthelper.ptprint(f"Not vulnerable to domain SEO fragmentation", "OK", not self.use_json)
         else:
