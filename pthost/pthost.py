@@ -35,26 +35,28 @@ class PtHost:
     def __init__(self, args):
         self.ptjsonlib      = ptjsonlib.PtJsonLib()
         self.test           = self._load_tests(args.test)
-        self.scanner    = VulnerabilityTester(args, self.ptjsonlib, self.test)
+        self.args           = args
         self.use_json       = args.json
 
     def run(self, args):
         domain = self._get_domain(args.domain)
+
         ptprinthelper.ptprint(f"Testing domain: {domain}\n", "TITLE", not self.use_json, colortext=True)
         for protocol in args.protocol:
-            self.scanner.protocol = protocol
-            ptprinthelper.ptprint(f"Protocol: {protocol.upper()}\n", "TITLE", not self.use_json, colortext=True)
             self._run_tests(domain, protocol=protocol)
-            if not self.use_json and protocol != args.protocol[-1]: print(" ") # add whitespace
+            ptprinthelper.ptprint(" ", "TEXT", condition=not self.use_json and (protocol != args.protocol[-1]))
 
-        if self.use_json:
-            self.ptjsonlib.set_status("finished")
-            print(self.ptjsonlib.get_result_json())
+        self.ptjsonlib.set_status("finished")
+        ptprinthelper.ptprint(self.ptjsonlib.get_result_json(), "TEXT", condition=self.use_json)
 
     def _run_tests(self, domain, protocol):
         """Perform specified tests"""
+        ptprinthelper.ptprint(f"Protocol: {protocol.upper()}\n", "TITLE", not self.use_json, colortext=True)
+
+        self.scanner = VulnerabilityTester(self.test, protocol, self.args, self.ptjsonlib)
         target_ip, base_url, full_url = self._resolve_and_construct_urls(domain, protocol)
         base_domain = base_url.split("://")[-1]
+
         try:
             response_dump, response, response_content = self.scanner._get_initial_response(full_url)
         except Exception as e:
@@ -127,6 +129,22 @@ class PtHost:
         return target_ip, base_url, full_url
 
     def _get_domain(self, domain: str) -> str:
+        """
+        Validates and processes the input domain string.
+
+        Removes trailing slashes and checks if the domain is in a valid format
+        (URL, domain name, or IPv4 address). If invalid, raises an error. For valid
+        URLs, extracts and returns the domain portion.
+
+        Args:
+            domain (str): The input domain string to process.
+
+        Returns:
+            str: The processed domain or hostname.
+
+        Raises:
+            ValueError: If the provided domain is not in a valid format (URL, domain name, or IPv4 address).
+        """
         while domain.endswith("/"):
             domain = domain[:-1]
         if not any([validators.url(domain), validators.domain(domain), validators.ipv4(domain)]):
@@ -139,7 +157,6 @@ class PtHost:
             if test in selected_tests:
                 selected_tests[test] = True
         return selected_tests
-
 
 def get_help():
     return [
@@ -183,7 +200,7 @@ def parse_args():
     parser.add_argument("-t",  "--test",       type=str.lower, nargs="+", default=TEST_CHOICES, choices=TEST_CHOICES)
     parser.add_argument("-p",  "--proxy",      type=str)
     parser.add_argument("-c",  "--cookie",     type=str, nargs="+")
-    parser.add_argument("-a", "--user-agent",  type=str, default="Penterep Tools")
+    parser.add_argument("-a",  "--user-agent",  type=str, default="Penterep Tools")
     parser.add_argument("-T",  "--timeout",    type=int, default=7)
     parser.add_argument("-H",  "--headers",    type=ptmisclib.pairs, nargs="+")
     parser.add_argument("-C",  "--cache",      action="store_true")
