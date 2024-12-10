@@ -21,7 +21,7 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
     ],
     python_requires = '>=3.9',
-    install_requires=["ptlibs>=1.0.7,<2", "tldextract", "validators"],
+    install_requires=["ptlibs>=1.0.14,<2", "tldextract", "validators"],
     entry_points = {'console_scripts': ['pthost = pthost.pthost:main']},
     include_package_data= True,
     long_description=long_description,
@@ -30,6 +30,5 @@ setuptools.setup(
         "homepage":   "https://www.penterep.com/",
         "repository": "https://github.com/penterep/pthost",
         "tracker":    "https://github.com/penterep/pthost/issues",
-        "changelog":  "https://github.com/penterep/pthost/blob/main/CHANGELOG.md",
     }
 )
