@@ -1,13 +1,15 @@
 import re, requests
-
+import tldextract
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper, tldparser
+
+from urllib.parse import urlparse
 
 class VulnerabilityTester:
     def __init__(self, tests: dict, protocol, args, ptjsonlib):
         self.protocol  = None
         self.ptjsonlib = ptjsonlib
         self.use_json  = args.json
-        self.timeout   = args.timeout
+        self.timeout   = args.timeout if not args.proxy else None
         self.cache     = args.cache
         self.test      = tests
         self.headers   = ptnethelper.get_request_headers(args)
@@ -24,18 +26,41 @@ class VulnerabilityTester:
         ptprinthelper.ptprint(f" ", "", not self.use_json)
 
     def _check_domain_seo_fragmentation(self, base_url):
-        """Test domain for SEO fragmentation"""
-        ptprinthelper.ptprint(f"Testing Domain for SEO fragmentation", "TITLE", not self.use_json, colortext=True)
-        protocol, base_domain = base_url.split("://") # split by scheme
+        """
+        Test the given domain for SEO fragmentation vulnerability.
 
+        This method checks if a domain is vulnerable to SEO fragmentation by comparing
+        the responses of the base domain (e.g., "example.com") and the "www" subdomain
+        (e.g., "www.example.com"). If the responses redirect to the same final URL,
+        the domain is considered not vulnerable. Otherwise, the domain is flagged as
+        vulnerable to SEO fragmentation.
+
+        :param base_url: The base URL to test, including the protocol
+                        (e.g., "http://example.com" or "https://example.com").
+        :type base_url: str
+
+        :raises ValueError: If the `base_url` is not properly formatted or does not include a protocol.
+
+        :return: None
+        :rtype: None
+
+
+        :example:
+
+        >>> _check_domain_seo_fragmentation("http://example.com")
+        Testing Domain for SEO fragmentation
+        Vulnerable to domain SEO fragmentation
+        """
+        ptprinthelper.ptprint(f"Testing Domain for SEO fragmentation", "TITLE", not self.use_json, colortext=True)
+
+        protocol, base_domain = base_url.split("://") # split by scheme
         response1 = requests.get(f"{protocol}://{base_domain}", allow_redirects=True, verify=False)
         response2 = requests.get(f"{protocol}://www.{base_domain}", allow_redirects=True, verify=False)
-
-        if response1.url == response2.url:
+        if response1.url.rstrip("/") == response2.url.rstrip("/"):
             ptprinthelper.ptprint(f"Not vulnerable to domain SEO fragmentation", "OK", not self.use_json)
         else:
             ptprinthelper.ptprint(f"Vulnerable to domain SEO fragmentation", "VULN", not self.use_json)
-            self.ptjsonlib.add_vulnerability(f"PTV-WEB-MISCONF-REDIRSUB")
+            self.ptjsonlib.add_vulnerability(f"PTV-WEB-MISCONF-REDIRSUB-{protocol}")
         ptprinthelper.ptprint(f" ", "", not self.use_json)
 
     def _test_crlf_injection(self, url: str, when_text: str) -> None:
@@ -95,19 +120,56 @@ class VulnerabilityTester:
         """
         return response.is_redirect
 
+
+    def _get_page_title(self, html_content):
+        """Extracts the page title from HTML content"""
+        soup = BeautifulSoup(html_content, 'html.parser')
+        title = soup.title.string if soup.title else "No title"
+        return title
+
     def _test_subdomain_reflection(self, base_url, with_www=False):
-        """Check <base_url> for subdomain reflection"""
+        """
+        Tests for subdomain reflection vulnerabilities by checking if the server responds
+        with the same content or redirects when accessing a subdomain.
+
+        :param base_url: The base URL to test for subdomain reflection.
+        :param with_www: Flag to determine if 'www.' should be prefixed to the subdomain (default is False).
+        """
         protocol, base_domain = base_url.split("://")
         url = f'{protocol}://fo0o0o0o1.www.{base_domain}' if with_www else f'{protocol}://fo0o0o0o1.{base_domain}'
         ptprinthelper.ptprint(f"Testing subdomain reflection: {url}", "TITLE", not self.use_json, colortext=True)
         try:
             response = requests.get(url, proxies=self.proxy, headers=self.headers, allow_redirects=False, verify=False, timeout=self.timeout)
+
+            if response.is_redirect:
+                redirect_url = response.headers.get('location')
+                redirect_domain = urlparse(redirect_url).netloc
+                base_domain_only = urlparse(base_url).netloc
+
+                # Extract root domain using tldextract
+                base_domain_parts = tldextract.extract(base_domain)
+                redirect_domain_parts = tldextract.extract(redirect_domain)
+
+                # Compare root domains (ignoring subdomains)
+                if base_domain_parts.domain != redirect_domain_parts.domain or base_domain_parts.suffix != redirect_domain_parts.suffix:
+                    ptprinthelper.ptprint(f"Redirect to a different domain: {redirect_url}", "OK", not self.use_json)
+                else:
+                    ptprinthelper.ptprint(f"Redirect to: {redirect_url}", "OK", not self.use_json)
+
+            # Same page as base domain (subdomain reflection) — Check for title or specific element
+            elif response.status_code == 200 and self._get_page_title(response.text) == self._get_page_title(requests.get(base_url)):
+                ptprinthelper.ptprint(f"Vulnerable to subdomain reflection", "ERROR", not self.use_json)
+                self.ptjsonlib.add_vulnerability("PTV-WEB-MISCONF-SUBRFLX")
+
+            elif response.status_code == 200:
+                ptprinthelper.ptprint(f"Warning: Server returned a default page (status 200). Check manually.", "WARNING", not self.use_json)
+
+            elif response.status_code >= 400:
+                ptprinthelper.ptprint(f"Server returned error [{response.status_code}]\n", "OK", not self.use_json)
+
         except requests.RequestException:
-            ptprinthelper.ptprint(f"Server not responding\n", "ERROR", not self.use_json)
-            return
-        is_vulnerable = True if response.status_code == 200 else False
-        if is_vulnerable:
-            self.ptjsonlib.add_vulnerability("PTV-WEB-MISCONF-SUBRFLX")
+            ptprinthelper.ptprint(f"Domain not exists\n", "OK", not self.use_json)
+
         ptprinthelper.ptprint(f" ", "", not self.use_json)
 
 
@@ -129,7 +191,7 @@ class VulnerabilityTester:
         host_injection = open_redirect = False
 
         if self.test['host-injection']:
-            example_in_content = re.search('(https?\:\/\/)?www\.example\.com\/?', response.text)
+            example_in_content = re.search(r'(https?://)?www.example.com/?', response.text)
             if example_in_content and response.status_code == 200:
                 host_injection = True
                 self.ptjsonlib.add_vulnerability("PTV-WEB-ACC-HHI", vuln_request=response_dump['request'], vuln_response=response_dump['response'])
@@ -138,7 +200,7 @@ class VulnerabilityTester:
                 ptprinthelper.ptprint(f"Not vulnerable to Host header injection", "OK", not self.use_json)
 
         if self.test['open-redirect']:
-            if response.headers.get('location') and re.search('^(http(s)?:\/\/)?www\.example\.com', response.headers['location']):
+            if response.headers.get('location') and re.search(r'^(http(s)?://)?www.example.com', response.headers['location']):
                 ptprinthelper.ptprint(f"Open Redirect vulnerability inside Host header", "VULN", not self.use_json)
                 self.ptjsonlib.add_vulnerability("PTV-WEB-MISCONF-REDIRHST", vuln_request=response_dump['request'], vuln_response=response_dump['response'])
                 ptprinthelper.ptprint(f"Open Redirect vulnerability inside when testing Host header injection", "VULN", not self.use_json)
@@ -148,7 +210,18 @@ class VulnerabilityTester:
                    If vulnerable on both protocols, the vulnerability will be overwritten by the other protocol
                 """
 
-        ptprinthelper.ptprint(f" ", "", not self.use_json)
+        if self.test['xss'] and host_injection:
+            try:
+                _headers = self.headers.copy(); _headers.update({"Host": "<foo>bar</foo>"})
+                response, response_dump = self._get_response(target_with_subdomain, "GET", headers=_headers)
+                if re.findall(r"<foo>\s*(bar)\s*</foo>", response.text):
+                    ptprinthelper.ptprint(f"Vulnerable to Cross Site Scripting via Host header injection", "VULN", not self.use_json)
+                    self.ptjsonlib.add_vulnerability("HHI-XSS", vuln_request=response_dump['request'], vuln_response=response_dump['response'])
+                else:
+                    ptprinthelper.ptprint(f"Not vulnerable to Cross Site Scripting via Host header injection", "OK", not self.use_json)
+            except requests.RequestException:
+                pass
+            ptprinthelper.ptprint(f" ", "", not self.use_json)
 
 
     def _get_initial_response(self, url: str):

@@ -69,16 +69,14 @@ class PtHost:
             if self.test['crlf'] and response.is_redirect:
                 self.scanner._test_crlf_injection(full_url, "when redirect from HTTP to HTTPS")
 
-
         if self.test["crlf"]:
             if full_url != f"{protocol}://{base_domain}":
                 self.scanner._test_crlf_injection(f"{protocol}://{base_domain}", "when redirect to subdomain")
             if not validators.ipv4(base_domain):
                 self.scanner._test_crlf_injection(f"{protocol}://www.{base_domain}", "when redirect to subdomain")
 
-        if protocol == "https":
-            if self.test['seo-fragmentation'] and not validators.ipv4(base_domain):
-                self.scanner._check_domain_seo_fragmentation(base_url)
+        if self.test['seo-fragmentation'] and not validators.ipv4(base_domain):
+            self.scanner._check_domain_seo_fragmentation(base_url)
 
         if self.test['default-vhost']:
             self.scanner._test_default_vhost(protocol, target_ip, response, response_content)
@@ -174,6 +172,7 @@ def get_help():
             ["",    " ",              " host-injection",               "Test Host injection"],
             ["",    " ",              " redir-to-https",               "Test HTTP to HTTPS redirects"],
             ["",    " ",              " seo-fragmentation",            "Test SEO fragmentation"],
+            ["",    " ",              " xss",                          "Test Cross Site Scripting"],
             ["",    " ",              " subdomain-reflection-www",     "Test Subdomain reflection (with www)"],
             ["",    " ",              " subdomain-reflection-no-www",  "Test Subdomain reflection (without www)"],
             ["",    " ",              "",                              ""],
@@ -193,7 +192,7 @@ def get_help():
 
 def parse_args():
     global TEST_CHOICES
-    TEST_CHOICES = ["default-vhost", "open-redirect", "crlf", "host-injection", "redir-to-https", "seo-fragmentation", "subdomain-reflection-www", "subdomain-reflection-no-www"]
+    TEST_CHOICES = ["default-vhost", "open-redirect", "crlf", "xss", "host-injection", "redir-to-https", "seo-fragmentation", "subdomain-reflection-www", "subdomain-reflection-no-www"]
     parser = argparse.ArgumentParser(add_help=False, usage=f"{SCRIPTNAME} <options>")
     parser.add_argument("-d",  "--domain",     type=str, required=True)
     parser.add_argument("-P",  "--protocol",   type=str.lower, nargs="+", default=["http", "https"], choices=["http", "https"])
