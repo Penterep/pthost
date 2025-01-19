@@ -212,9 +212,9 @@ class VulnerabilityTester:
 
         if self.test['xss'] and host_injection:
             try:
-                _headers = self.headers.copy(); _headers.update({"Host": "<foo>bar</foo>"})
+                _headers = self.headers.copy(); _headers.update({"Host": "<foo>"})
                 response, response_dump = self._get_response(target_with_subdomain, "GET", headers=_headers)
-                if re.findall(r"<foo>\s*(bar)\s*</foo>", response.text):
+                if re.findall(r"<foo>", response.text):
                     ptprinthelper.ptprint(f"Vulnerable to Cross Site Scripting via Host header injection", "VULN", not self.use_json)
                     self.ptjsonlib.add_vulnerability("HHI-XSS", vuln_request=response_dump['request'], vuln_response=response_dump['response'])
                 else:
