@@ -34,27 +34,28 @@ pthost -d www.example.com
 ### Options:
 
 ```
--d   --domain      <domain>                      Test Domain
--t   --test        <test-types>                  Specify tests to perform (default all)
-                    default-vhost                Test Default vhost
-                    open-redirect                Test Open Redirect
-                    crlf                         Test CRLF injection
-                    host-injection               Test Host injection
-                    redir-to-https               Test HTTP to HTTPS redirects
-                    seo-fragmentation            Test SEO fragmentation
-                    subdomain-reflection-www     Test Subdomain reflection (with www)
-                    subdomain-reflection-no-www  Test Subdomain reflection (without www)
+   -d   --domain      <domain>                      Test Domain
+   -t   --test        <test-types>                  Specify tests to perform (default all)
+                       default-vhost                Test Default vhost
+                       open-redirect                Test Open Redirect
+                       crlf                         Test CRLF injection
+                       host-injection               Test Host injection
+                       redir-to-https               Test HTTP to HTTPS redirects
+                       seo-fragmentation            Test SEO fragmentation
+                       xss                          Test Cross Site Scripting
+                       subdomain-reflection-www     Test Subdomain reflection (with www)
+                       subdomain-reflection-no-www  Test Subdomain reflection (without www)
 
--H   --headers     <header:value>                Set custom headers
--T   --timeout     <timeout>                     Set timeout (default 7s)
--ua  --user-agent  <user-agent>                  Set user agent
--c   --cookie      <cookie=value>                Set cookie(s)
--p   --proxy       <proxy>                       Set proxy (e.g. http://127.0.0.1:8080)
--P   --protocol    <protocol>                    Set protocol to test (HTTP, HTTPS), default both
--C   --cache                                     Cache requests (load from tmp in future)
--v   --version                                   Show script version and exit
--h   --help                                      Show this help message and exit
--j   --json                                      Output in JSON format
+   -H   --headers     <header:value>                Set custom headers
+   -T   --timeout     <timeout>                     Set timeout (default 7s)
+   -ua  --user-agent  <user-agent>                  Set user agent
+   -c   --cookie      <cookie=value>                Set cookie(s)
+   -p   --proxy       <proxy>                       Set proxy (e.g. http://127.0.0.1:8080)
+   -P   --protocol    <protocol>                    Set protocol to test (HTTP, HTTPS), default both
+   -C   --cache                                     Cache requests (load from tmp in future)
+   -v   --version                                   Show script version and exit
+   -h   --help                                      Show this help message and exit
+   -j   --json                                      Output in JSON format
 
 ```
 
@@ -69,7 +70,7 @@ tldextract
 
 ## License
 
-Copyright (c) 2024 Penterep Security s.r.o.
+Copyright (c) 2025 Penterep Security s.r.o.
 
 pthost is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
