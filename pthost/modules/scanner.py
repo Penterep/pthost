@@ -1,5 +1,6 @@
 import re, requests
 import tldextract
+from bs4 import BeautifulSoup
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper, tldparser
 
 from urllib.parse import urlparse
