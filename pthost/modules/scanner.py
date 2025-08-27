@@ -203,7 +203,9 @@ class VulnerabilityTester:
         if self.test['open-redirect']:
             if response.headers.get('location') and re.search(r'^(http(s)?://)?www.example.com', response.headers['location']):
                 ptprinthelper.ptprint(f"Open Redirect vulnerability inside Host header", "VULN", not self.use_json)
-                self.ptjsonlib.add_vulnerability("PTV-WEB-MISCONF-REDIRHST", vuln_request=response_dump['request'], vuln_response=response_dump['response'])
+                scheme = "https" if response.url.startswith("https://") else "http"
+                vuln_code = " PTV-WEB-INFO-REDIRS" if scheme == "https" else " PTV-WEB-INFO-REDIR"
+                self.ptjsonlib.add_vulnerability(vuln_code, vuln_request=response_dump['request'], vuln_response=response_dump['response'])
                 ptprinthelper.ptprint(f"Open Redirect vulnerability inside when testing Host header injection", "VULN", not self.use_json)
             else:
                 ptprinthelper.ptprint(f"Open Redirect vulnerability not found when testing Host header injection", "OK", not self.use_json)
