@@ -165,7 +165,7 @@ def get_help():
         ]},
         {"options": [
             ["-d",  "--domain",       "<domain>",                      "Test Domain"],
-            ["-t",  "--test",         "<test-types>",                  "Specify tests to perform (default all)"],
+            ["-ts",  "--test",         "<tests>",                      "Specify tests to perform (default all)"],
             ["",    " ",              " default-vhost",                "Test Default vhost"],
             ["",    " ",              " open-redirect",                "Test Open Redirect"],
             ["",    " ",              " crlf",                         "Test CRLF injection"],
@@ -196,7 +196,7 @@ def parse_args():
     parser = argparse.ArgumentParser(add_help=False, usage=f"{SCRIPTNAME} <options>")
     parser.add_argument("-d",  "--domain",     type=str, required=True)
     parser.add_argument("-P",  "--protocol",   type=str.lower, nargs="+", default=["http", "https"], choices=["http", "https"])
-    parser.add_argument("-t",  "--test",       type=str.lower, nargs="+", default=TEST_CHOICES, choices=TEST_CHOICES)
+    parser.add_argument("-ts",  "--test",       type=str.lower, nargs="+", default=TEST_CHOICES, choices=TEST_CHOICES)
     parser.add_argument("-p",  "--proxy",      type=str)
     parser.add_argument("-c",  "--cookie",     type=str, nargs="+")
     parser.add_argument("-a",  "--user-agent",  type=str, default="Penterep Tools")
