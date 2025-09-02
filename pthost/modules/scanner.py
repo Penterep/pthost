@@ -55,8 +55,13 @@ class VulnerabilityTester:
         ptprinthelper.ptprint(f"Testing Domain for SEO fragmentation", "TITLE", not self.use_json, colortext=True)
 
         protocol, base_domain = base_url.split("://") # split by scheme
-        response1 = requests.get(f"{protocol}://{base_domain}", allow_redirects=True, verify=False)
-        response2 = requests.get(f"{protocol}://www.{base_domain}", allow_redirects=True, verify=False)
+        try:
+            response1 = requests.get(f"{protocol}://{base_domain}", allow_redirects=True, verify=False)
+            response2 = requests.get(f"{protocol}://www.{base_domain}", allow_redirects=True, verify=False)
+        except requests.RequestException:
+            ptprinthelper.ptprint(f"Servet nor responding\n", "ERROR", not self.use_json)
+            return
+
         if response1.url.rstrip("/") == response2.url.rstrip("/"):
             ptprinthelper.ptprint(f"Not vulnerable to domain SEO fragmentation", "OK", not self.use_json)
         else:
@@ -68,7 +73,11 @@ class VulnerabilityTester:
         """Send request and check if it's vulnerable to CRLF injection"""
         ptprinthelper.ptprint(f"Testing CRLF injection: {url}/?foo=foo%0D%0Atestfoo:testfoo", "TITLE", not self.use_json, colortext=True)
 
-        response, response_dump = self._get_response(f'{url}/?foo=foo%0D%0Atestfoo:testfoo', "GET", self.headers)
+        try:
+            response, response_dump = self._get_response(f'{url}/?foo=foo%0D%0Atestfoo:testfoo', "GET", self.headers)
+        except requests.RequestException as e:
+            ptprinthelper.ptprint(f"Server not responding\n", "ERROR", not self.use_json)
+            return
         if response.headers.get('testfoo'):
             #ptprinthelper.ptprint(f"Vulnerable to CRLF injection ({when_text})", "VULN", not self.use_json)
             ptprinthelper.ptprint(f"Vulnerable to CRLF injection", "VULN", not self.use_json)
@@ -169,7 +178,7 @@ class VulnerabilityTester:
                 ptprinthelper.ptprint(f"Server returned error [{response.status_code}]\n", "OK", not self.use_json)
 
         except requests.RequestException:
-            ptprinthelper.ptprint(f"Domain not exists\n", "OK", not self.use_json)
+            ptprinthelper.ptprint(f"Domain does not exist", "OK", not self.use_json)
 
         ptprinthelper.ptprint(f" ", "", not self.use_json)
 
