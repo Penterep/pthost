@@ -167,7 +167,7 @@ class VulnerabilityTester:
                     ptprinthelper.ptprint(f"Redirect to: {redirect_url}", "OK", not self.use_json)
 
             # Same page as base domain (subdomain reflection) — Check for title or specific element
-            elif response.status_code == 200 and self._get_page_title(response.text) == self._get_page_title(requests.get(base_url)):
+            elif response.status_code == 200 and self._get_page_title(response.text) == self._get_page_title(requests.get(base_url).text):
                 ptprinthelper.ptprint(f"Vulnerable to subdomain reflection", "ERROR", not self.use_json)
                 self.ptjsonlib.add_vulnerability("PTV-WEB-MISCONF-SUBRFLX")
 
