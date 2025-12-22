@@ -3,7 +3,7 @@ import tldextract
 from bs4 import BeautifulSoup
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper, tldparser
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 class VulnerabilityTester:
     def __init__(self, tests: dict, protocol, args, ptjsonlib):
@@ -19,7 +19,11 @@ class VulnerabilityTester:
     def _test_missing_http_redirect_to_https(self, response, response_dump) -> None:
         """Tests whether HTTP response contains redirect to HTTPS"""
         ptprinthelper.ptprint(f"Testing HTTP to HTTPS redirect", "TITLE", not self.use_json, colortext=True)
-        if response.headers.get('location', "").startswith("https"):
+
+        if response.is_redirect:
+            response, _ = self._get_response(urljoin(response.url, response.headers.get('location', '')), "GET", self.headers, True)
+
+        if response.url.startswith("https"):
             ptprinthelper.ptprint(f"Redirect to HTTPS: OK", "OK", not self.use_json)
         else:
             ptprinthelper.ptprint(f"Missing redirect from HTTP to HTTPS", "VULN", not self.use_json)
@@ -276,9 +280,9 @@ class VulnerabilityTester:
         return response_dump, response, content
 
 
-    def _get_response(self, url, method, headers):
+    def _get_response(self, url, method, headers, redirects=False):
         try:
-            response, response_dump = ptmisclib.load_url_from_web_or_temp(url=url, method=method, headers=headers, proxies=self.proxy, timeout=self.timeout, redirects=False, cache=self.cache, dump_response=True)
+            response, response_dump = ptmisclib.load_url_from_web_or_temp(url=url, method=method, headers=headers, proxies=self.proxy, timeout=self.timeout, redirects=redirects, cache=self.cache, dump_response=True)
             return response, response_dump
         except requests.RequestException:
             raise
