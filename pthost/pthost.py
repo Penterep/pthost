@@ -21,14 +21,13 @@ import argparse
 import socket
 import sys; sys.path.append(__file__.rsplit("/", 1)[0])
 
-import tldextract
 import requests
 import validators
 
 from modules.scanner import VulnerabilityTester
 
 from _version import __version__
-from ptlibs import ptjsonlib, ptmisclib, ptprinthelper, ptnethelper
+from ptlibs import ptjsonlib, ptmisclib, ptprinthelper, ptnethelper, tldparser
 
 
 class PtHost:
@@ -111,7 +110,7 @@ class PtHost:
         might return ("93.184.216.34", "https://example.com", "https://www.example.com/").
         """
 
-        extract = tldextract.extract(domain)
+        extract = tldparser.extract(domain)
         if validators.ipv4(extract.domain): # if <extract.domain> is ipv4 address
             base_url   = f"{protocol}://{extract.domain}"
             full_url   = f"{protocol}://{extract.domain}"

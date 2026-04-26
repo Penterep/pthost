@@ -1,5 +1,4 @@
 import re, requests
-import tldextract
 from bs4 import BeautifulSoup
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper, tldparser
 
@@ -63,7 +62,7 @@ class VulnerabilityTester:
             response1 = requests.get(f"{protocol}://{base_domain}", allow_redirects=True, verify=False)
             response2 = requests.get(f"{protocol}://www.{base_domain}", allow_redirects=True, verify=False)
         except requests.RequestException:
-            ptprinthelper.ptprint(f"Servet nor responding\n", "ERROR", not self.use_json)
+            ptprinthelper.ptprint(f"Server not responding\n", "ERROR", not self.use_json)
             return
 
         if response1.url.rstrip("/") == response2.url.rstrip("/"):
@@ -160,9 +159,9 @@ class VulnerabilityTester:
                 redirect_domain = urlparse(redirect_url).netloc
                 base_domain_only = urlparse(base_url).netloc
 
-                # Extract root domain using tldextract
-                base_domain_parts = tldextract.extract(base_domain)
-                redirect_domain_parts = tldextract.extract(redirect_domain)
+                # Extract root domain using tldparser
+                base_domain_parts = tldparser.extract(base_domain)
+                redirect_domain_parts = tldparser.extract(redirect_domain)
 
                 # Compare root domains (ignoring subdomains)
                 if base_domain_parts.domain != redirect_domain_parts.domain or base_domain_parts.suffix != redirect_domain_parts.suffix:
