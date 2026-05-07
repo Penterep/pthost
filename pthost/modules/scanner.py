@@ -2,6 +2,8 @@ import re, requests
 from bs4 import BeautifulSoup
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper, tldparser
 
+import tldextract as tldparser # temp fix for crashing tldparser, should be removed when fixed in tldparser
+
 from urllib.parse import urlparse, urljoin
 
 class VulnerabilityTester:
