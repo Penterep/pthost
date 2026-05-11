@@ -30,7 +30,7 @@ from _version import __version__
 from ptlibs import ptjsonlib, ptmisclib, ptprinthelper, ptnethelper, tldparser
 
 import tldextract as tldparser # temp fix for crashing tldparser, should be removed when fixed in tldparser
-tldextract.extract = tldextract.TLDExtract(
+tldparser.extract = tldparser.TLDExtract(
     extra_suffixes=["loc"],
 )
 
