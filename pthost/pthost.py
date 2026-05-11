@@ -30,6 +30,9 @@ from _version import __version__
 from ptlibs import ptjsonlib, ptmisclib, ptprinthelper, ptnethelper, tldparser
 
 import tldextract as tldparser # temp fix for crashing tldparser, should be removed when fixed in tldparser
+tldextract.extract = tldextract.TLDExtract(
+    extra_suffixes=["loc"],
+)
 
 class PtHost:
     def __init__(self, args):
