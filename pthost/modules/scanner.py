@@ -1,5 +1,6 @@
 import re, requests
 from bs4 import BeautifulSoup
+from ptlibs.http.http_client import HttpClient
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper, tldparser
 
 import tldextract as tldparser # temp fix for crashing tldparser, should be removed when fixed in tldparser
@@ -16,6 +17,7 @@ class VulnerabilityTester:
         self.test      = tests
         self.headers   = ptnethelper.get_request_headers(args)
         self.proxy     = {"http": args.proxy, "https": args.proxy}
+        self.http_client = HttpClient.get_instance(args=args, ptjsonlib=ptjsonlib)
 
     def _test_missing_http_redirect_to_https(self, response, response_dump) -> None:
         """Tests whether HTTP response contains redirect to HTTPS"""
@@ -241,6 +243,147 @@ class VulnerabilityTester:
             ptprinthelper.ptprint(f" ", "", not self.use_json)
 
 
+    def _test_http_versions(self, url: str) -> None:
+        """Test server responses to HTTP/1.0, HTTP/1.1 and HTTP/2.0 request lines."""
+        ptprinthelper.ptprint(f"Testing HTTP protocol versions", "TITLE", not self.use_json, colortext=True)
+
+        responses = {}
+        for http_version in ("1.1", "1.0", "2.0"):
+            try:
+                response = self._get_raw_response_for_http_version(url, http_version)
+                content = self._get_content(response, print_title=False)
+                responses[http_version] = {"response": response, "content": content}
+            except Exception as e:
+                responses[http_version] = {"error": str(e), "error_type": type(e).__name__}
+
+        self._print_http_version_results(responses)
+        ptprinthelper.ptprint(f" ", "", not self.use_json)
+
+
+    def _get_raw_response_for_http_version(self, url: str, http_version: str):
+        request_path = urlparse(url).path or "/"
+        if urlparse(url).query:
+            request_path += "?" + urlparse(url).query
+
+        headers = self.headers.copy()
+        headers.setdefault("Connection", "close")
+        headers.setdefault("Accept-Encoding", "identity")
+
+        return self.http_client.send_raw_request(
+            url=url,
+            method="GET",
+            headers=headers,
+            timeout=self.timeout,
+            custom_request_line=f"GET {request_path} HTTP/{http_version}"
+        )
+
+
+    def _print_http_version_results(self, responses: dict) -> None:
+        baseline = responses.get("1.1", {})
+        baseline_response = baseline.get("response")
+        baseline_content = baseline.get("content")
+
+        for http_version in ("1.1", "1.0", "2.0"):
+            result = responses.get(http_version, {})
+            response = result.get("response")
+            content = result.get("content")
+
+            if not response:
+                error_type = result.get("error_type", "error")
+                ptprinthelper.ptprint(f"HTTP/{http_version}: not allowed [{error_type}]", "WARNING", not self.use_json)
+                continue
+
+            status = "allowed" if response.status and response.status < 400 else "not allowed"
+            message = f"HTTP/{http_version}: {status} {self._format_response_summary(response)}"
+            behavior = self._format_http_version_behavior(http_version, response, content, baseline_response, baseline_content)
+            if behavior:
+                message = f"{message}, {behavior}"
+
+            level = "OK" if status == "allowed" and not behavior.startswith("different") else "WARNING"
+            ptprinthelper.ptprint(message, level, not self.use_json)
+
+
+    def _format_http_version_behavior(self, http_version, response, content, baseline_response, baseline_content) -> str:
+        if http_version == "1.1":
+            return "default version for comparison"
+        if not baseline_response:
+            return "cmp skipped"
+
+        differences = []
+        if response.status != baseline_response.status:
+            differences.append(self._format_status_difference(baseline_response, response))
+
+        baseline_location = baseline_response.get_header("location")
+        response_location = response.get_header("location")
+        if response_location != baseline_location:
+            differences.append(self._format_redirect_difference(baseline_location, response_location))
+
+        if self._should_compare_http_version_content(baseline_response, response) and content != baseline_content:
+            differences.append(self._format_content_difference(baseline_content, content))
+
+        baseline_server = baseline_response.get_header("server")
+        response_server = response.get_header("server")
+        if response_server != baseline_server:
+            differences.append(self._format_header_difference("Server", baseline_server, response_server))
+
+        if differences:
+            return f"diff: {'; '.join(differences)}"
+        return "same as HTTP/1.1"
+
+
+    def _format_response_summary(self, response) -> str:
+        reason = f" {response.reason}" if getattr(response, "reason", "") else ""
+        location = response.get_header("location")
+        redirect_info = f" -> {location}" if location else ""
+        return f"[{response.status}{reason}{redirect_info}]"
+
+
+    def _format_status_difference(self, baseline_response, response) -> str:
+        baseline_reason = f" {baseline_response.reason}" if getattr(baseline_response, "reason", "") else ""
+        response_reason = f" {response.reason}" if getattr(response, "reason", "") else ""
+        return f"status {baseline_response.status}{baseline_reason}->{response.status}{response_reason}"
+
+
+    def _format_redirect_difference(self, baseline_location, response_location) -> str:
+        if baseline_location and not response_location:
+            return "no redirect"
+        if response_location and not baseline_location:
+            return f"redirect->{response_location}"
+        return f"redirect {baseline_location}->{response_location}"
+
+    def _format_header_difference(self, header_name, baseline_value, response_value) -> str:
+        if baseline_value and not response_value:
+            return f"{header_name} header missing"
+        if response_value and not baseline_value:
+            return f"{header_name} header added"
+        return f"{header_name} header changed"
+
+    def _should_compare_http_version_content(self, baseline_response, response) -> bool:
+        baseline_is_redirect = 300 <= baseline_response.status < 400
+        response_is_redirect = 300 <= response.status < 400
+
+        if baseline_is_redirect or response_is_redirect:
+            return False
+        if baseline_response.status // 100 != response.status // 100:
+            return False
+        return True
+
+
+    def _format_content_difference(self, baseline_content, response_content) -> str:
+        baseline_title = self._extract_title_from_content(baseline_content)
+        response_title = self._extract_title_from_content(response_content)
+
+        if baseline_title != response_title:
+            return f"content title {baseline_title or '-'}->{response_title or '-'}"
+
+        return f"content length {len(baseline_content)}->{len(response_content)}"
+
+
+    def _extract_title_from_content(self, content: str) -> str:
+        title = re.search(r'<title.*?>([\s\S]*?)</title>', content or "", re.IGNORECASE)
+        return title[1].strip() if title else ""
+
+
     def _get_initial_response(self, url: str):
         """Retrieves the initial response from the specified url for later comparison.
 
@@ -301,7 +444,7 @@ class VulnerabilityTester:
             return False
 
 
-    def _get_content(self, response):
+    def _get_content(self, response, title_prefix="", print_title=True):
         """Retrieves response content (used for comparing)"""
         content = re.search(r'<title.*?>([\s\S]*?)</title>', response.text, re.IGNORECASE)
         title = ""
@@ -314,6 +457,6 @@ class VulnerabilityTester:
             content = content[1]
         if not content:
             content = response.text
-        if title:
-            ptprinthelper.ptprint(f"Title: {title}", "INFO", not self.use_json)
+        if title and print_title:
+            ptprinthelper.ptprint(f"{title_prefix}Title: {title}", "INFO", not self.use_json)
         return content

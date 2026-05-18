@@ -92,6 +92,9 @@ class PtHost:
         if self.test["host-injection"] or self.test["open-redirect"]:
             self.scanner._host_header_injection(full_url, response, response_content)
 
+        if self.test["http-versions"]:
+            self.scanner._test_http_versions(full_url)
+
     def _resolve_and_construct_urls(self, domain: str, protocol: str) -> tuple[str, str, str]:
         """Extracts and returns details from a provided domain.
 
@@ -175,6 +178,7 @@ def get_help():
             ["",    " ",              " host-injection",               "Test Host injection"],
             ["",    " ",              " redir-to-https",               "Test HTTP to HTTPS redirects"],
             ["",    " ",              " seo-fragmentation",            "Test SEO fragmentation"],
+            ["",    " ",              " http-versions",                "Test HTTP protocol versions (1.0, 1.1, 2.0)"],
             ["",    " ",              " xss",                          "Test Cross Site Scripting"],
             ["",    " ",              " subdomain-reflection-www",     "Test Subdomain reflection (with www)"],
             ["",    " ",              " subdomain-reflection-no-www",  "Test Subdomain reflection (without www)"],
@@ -195,7 +199,7 @@ def get_help():
 
 def parse_args():
     global TEST_CHOICES
-    TEST_CHOICES = ["default-vhost", "open-redirect", "crlf", "xss", "host-injection", "redir-to-https", "seo-fragmentation", "subdomain-reflection-www", "subdomain-reflection-no-www"]
+    TEST_CHOICES = ["default-vhost", "open-redirect", "crlf", "xss", "host-injection", "redir-to-https", "seo-fragmentation", "http-versions", "subdomain-reflection-www", "subdomain-reflection-no-www"]
     parser = argparse.ArgumentParser(add_help=False, usage=f"{SCRIPTNAME} <options>")
     parser.add_argument("-d",  "--domain",     type=str, required=True)
     parser.add_argument("-P",  "--protocol",   type=str.lower, nargs="+", default=["http", "https"], choices=["http", "https"])
