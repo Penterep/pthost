@@ -240,15 +240,15 @@ class VulnerabilityTester:
                     ptprinthelper.ptprint(f"Not vulnerable to Cross Site Scripting via Host header injection", "OK", not self.use_json)
             except requests.RequestException:
                 pass
-            ptprinthelper.ptprint(f" ", "", not self.use_json)
+        ptprinthelper.ptprint(f" ", "", not self.use_json)
 
 
     def _test_http_versions(self, url: str) -> None:
-        """Test server responses to HTTP/1.0, HTTP/1.1 and HTTP/2.0 request lines."""
+        """Test server responses to HTTP/0.9, HTTP/1.0, HTTP/1.1 and HTTP/2.0 request lines."""
         ptprinthelper.ptprint(f"Testing HTTP protocol versions", "TITLE", not self.use_json, colortext=True)
 
         responses = {}
-        for http_version in ("1.1", "1.0", "2.0"):
+        for http_version in ("1.1", "0.9", "1.0", "2.0"):
             try:
                 response = self._get_raw_response_for_http_version(url, http_version)
                 content = self._get_content(response, print_title=False)
@@ -283,7 +283,7 @@ class VulnerabilityTester:
         baseline_response = baseline.get("response")
         baseline_content = baseline.get("content")
 
-        for http_version in ("1.1", "1.0", "2.0"):
+        for http_version in ("1.1", "0.9", "1.0", "2.0"):
             result = responses.get(http_version, {})
             response = result.get("response")
             content = result.get("content")
@@ -299,7 +299,7 @@ class VulnerabilityTester:
             if behavior:
                 message = f"{message}, {behavior}"
 
-            level = "OK" if status == "allowed" and not behavior.startswith("different") else "WARNING"
+            level = "OK" if status == "allowed" and not behavior.startswith("diff:") else "WARNING"
             ptprinthelper.ptprint(message, level, not self.use_json)
 
 

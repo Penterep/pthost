@@ -178,7 +178,7 @@ def get_help():
             ["",    " ",              " host-injection",               "Test Host injection"],
             ["",    " ",              " redir-to-https",               "Test HTTP to HTTPS redirects"],
             ["",    " ",              " seo-fragmentation",            "Test SEO fragmentation"],
-            ["",    " ",              " http-versions",                "Test HTTP protocol versions (1.0, 1.1, 2.0)"],
+            ["",    " ",              " http-versions",                "Test HTTP protocol versions (0.9, 1.0, 1.1, 2.0)"],
             ["",    " ",              " xss",                          "Test Cross Site Scripting"],
             ["",    " ",              " subdomain-reflection-www",     "Test Subdomain reflection (with www)"],
             ["",    " ",              " subdomain-reflection-no-www",  "Test Subdomain reflection (without www)"],
